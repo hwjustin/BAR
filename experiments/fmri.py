@@ -16,28 +16,9 @@ print("subj",subj,"num_voxels",num_voxels)
 
 
 # Dataset Setup
-val_url = f"webdataset_avg_split/test/test_subj0{subj}_" + "{0..1}.tar"
-meta_url = f"webdataset_avg_split/metadata_subj0{subj}.json"
-num_train = 8559 + 300
-num_val = 982
-batch_size = val_batch_size = 1
-voxels_key = 'nsdgeneral.npy' # 1d inputs
-
-val_data = wds.WebDataset(val_url, resampled=False)\
-    .decode("torch")\
-    .rename(images="jpg;png", voxels=voxels_key, trial="trial.npy", coco="coco73k.npy", reps="num_uniques.npy")\
-    .to_tuple("voxels", "images", "coco")\
-    .batched(val_batch_size, partial=False)
-
-val_dl = torch.utils.data.DataLoader(val_data, batch_size=None, shuffle=False)
-
-# check that your data loader is working
-for val_i, (voxel, img_input, coco) in enumerate(val_dl):
-    print("idx",val_i)
-    print("voxel.shape",voxel.shape)
-    print("img_input.shape",img_input.shape)
-    break
-
+voxels = np.load('fake_concept/positive_voxels.npy')  # Load the voxel data directly
+voxels = torch.from_numpy(voxels)  # Convert to torch tensor
+print("Loaded voxels shape:", voxels.shape)
 
 # CLS model
 out_dim = 768
@@ -78,63 +59,19 @@ verbose = False
 imsize = 512
 
 all_brain_recons = None
-ind_include = np.arange(num_val)
+ind_include = np.arange(len(voxels))
 all_cls_embeddings = []
 
-for val_i, (voxel, img, coco) in enumerate(tqdm(val_dl,total=len(ind_include))):
-    if val_i<np.min(ind_include):
-        continue
-    voxel = torch.mean(voxel,axis=1).to(device)
- 
+# Process all voxels in batches
+batch_size = 1
+for i in tqdm(range(0, len(voxels), batch_size)):
+    batch_voxels = voxels[i:i+batch_size].to(device)
+    batch_voxels = torch.mean(batch_voxels,axis=1).to(device)
+    
     with torch.no_grad():
-        n_samples_save = 1
-        brain_recons = None
-       
+        _, cls_embeddings = diffusion_prior_cls.voxel2clip(batch_voxels.float())
+        all_cls_embeddings.append(cls_embeddings.cpu())
 
-        voxel=voxel[:n_samples_save]
-        # image=image[:n_samples_save]
-
-        generator = torch.Generator(device=device)
-        generator.manual_seed(42)
-
-        _, cls_embeddings = diffusion_prior_cls.voxel2clip(voxel.to(device).float())
-
-        # Append the embeddings to the list
-        all_cls_embeddings.append(cls_embeddings.cpu())  # Move to CPU to avoid memory issues
-
-        # grid, brain_recons, laion_best_picks, recon_img = utils.reconstruction(
-        #     img, voxel,
-        #     clip_extractor,
-        #     voxel2clip_cls = diffusion_prior_cls.voxel2clip,
-        #     diffusion_priors = diffusion_priors,
-        #     text_token = None,
-        #     n_samples_save = batch_size,-
-        #     recons_per_sample = 0,
-        #     seed = seed,
-        #     retrieve = retrieve,
-        #     plotting = plotting,
-        #     verbose = verbose,
-        #     num_retrieved=16,
-        # )
-            
-        # if plotting:
-        #     plt.show()
-        #     # grid.savefig(f'evals/{model_name}_{val_i}.png')
-        #     # plt.close()
-            
-        # brain_recons = brain_recons[laion_best_picks.astype(np.int8)]
-
-        # if all_brain_recons is None:
-        #     all_brain_recons = brain_recons
-        #     all_images = img
-        # else:
-        #     all_brain_recons = torch.vstack((all_brain_recons,brain_recons))
-        #     all_images = torch.vstack((all_images,img))
-            
-    if val_i>=np.max(ind_include):
-        break
-
-# all_brain_recons = all_brain_recons.view(-1,3,imsize,imsize)
 print(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 all_cls_embeddings = torch.cat(all_cls_embeddings, dim=0)

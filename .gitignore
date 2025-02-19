@@ -141,3 +141,5 @@ results/
 train_logs/
 webdataset_avg_split/
 checkpoints/
+fake_concept/
+concept/
