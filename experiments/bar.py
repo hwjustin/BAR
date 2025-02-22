@@ -11,7 +11,7 @@ import logging
 from utils.plot import plot_concept_accuracy
 from explanations.concept import CAR, CAV
 from explanations.feature import CARFeatureImportance
-from models.brain import BrainNetwork
+# from models.brain import BrainNetwork
 import matplotlib.pyplot as plt
 
 def vis_token_process(image_features, vis_token_scale):
