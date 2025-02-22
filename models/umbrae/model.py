@@ -11,7 +11,7 @@
 from functools import partial
 
 from transformers import CLIPVisionModel 
-from perceiver import PerceiverResampler
+from models.umbrae.perceiver import PerceiverResampler
 
 import torch
 from torch import nn
