@@ -326,6 +326,24 @@ def plot_feature_importance(attributions: np.ndarray, save_dir: Path, title: str
     plt.close()
 
 
+def plot_concept_accuracy_bar(accuracies: dict, results_dir: Path) -> None:
+    sns.set(font_scale=1)
+    sns.color_palette("colorblind")
+    sns.set_style("white")
+
+    categories = list(accuracies.keys())
+    accuracy_values = list(accuracies.values())
+
+    plt.figure(figsize=(12, 8))
+    sns.barplot(x=categories, y=accuracy_values)
+    plt.xticks(rotation=90)
+    plt.ylabel("Test Accuracy")
+    plt.title("Concept Accuracy for Each Category")
+    plt.tight_layout()
+    plt.savefig(results_dir / "concept_accuracy_all_categories.pdf")
+    plt.close()
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     parser = argparse.ArgumentParser()

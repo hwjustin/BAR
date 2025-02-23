@@ -8,8 +8,8 @@ from models.umbrae.model import BrainX, BrainXS
 parser = argparse.ArgumentParser()
 parser.add_argument('--brainx_path', default='train_logs/training_demo/best.pth',
                     help='path to the trained brain encoder model')
-parser.add_argument('--voxel_path', type=str, required=True,
-                    help='path to the voxel data (.npy file)')
+# parser.add_argument('--voxel_path', type=str, required=True,
+#                     help='path to the voxel data (.npy file)')
 parser.add_argument('--fmri_encoder', type=str, default='brainx',
                     help='type of brainnet', choices=['brainx', 'brainxs'])
 parser.add_argument('--use_norm', type=bool, default=False,
@@ -36,18 +36,12 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed(seed)
 
 # Create save directory
-os.makedirs(save_path, exist_ok=True)
+# os.makedirs(save_path, exist_ok=True)
 
 # Save config
-args_dict = vars(args)
-with open(os.path.join(save_path, 'config.json'), 'w') as file:
-    json.dump(args_dict, file, indent=4)
-
-# Load voxel data
-print('Loading voxel data...')
-voxels = np.load(voxel_path)
-voxels = torch.from_numpy(voxels).float()
-voxels = torch.mean(voxels, axis=1)  # Take mean across repetitions
+# args_dict = vars(args)
+# with open(os.path.join(save_path, 'config.json'), 'w') as file:
+#     json.dump(args_dict, file, indent=4)
 
 # Initialize model
 voxels_per_subj = {1: 15724, 2: 14278, 3: 15226, 4: 13153, 5: 13039, 6: 17907, 7: 12682, 8: 14386}
@@ -72,28 +66,44 @@ checkpoint = torch.load(brainx_path, map_location='cpu', weights_only=False)
 voxel2emb.load_state_dict(checkpoint['model_state_dict'], strict=False)
 voxel2emb.eval()
 
-# Generate embeddings
-print('Generating embeddings...')
-embeddings = []
-batch_size = 1  # You can adjust this based on your GPU memory
+# Define directories
+voxel_dir = 'concept/voxel'
+feature_dir = 'concept/feature'
+os.makedirs(feature_dir, exist_ok=True)
 
-with torch.no_grad():
-    for i in range(0, len(voxels), batch_size):
-        batch = voxels[i:i + batch_size].to(device)
-        with torch.cuda.amp.autocast():
-            if fmri_encoder == 'brainx':
-                emb = voxel2emb(batch, modal=f'fmri{subj}')
-            else:
-                emb = voxel2emb(batch)
-            embeddings.append(emb.cpu())
+# Process each voxel file in the directory
+for voxel_file in os.listdir(voxel_dir):
+    if voxel_file.endswith('.npy'):
+        voxel_path = os.path.join(voxel_dir, voxel_file)
+        
+        # Load voxel data
+        print(f'Loading voxel data from {voxel_file}...')
+        voxels = np.load(voxel_path)
+        voxels = torch.from_numpy(voxels).float()
+        voxels = torch.mean(voxels, axis=1)  # Take mean across repetitions
 
-# Concatenate all embeddings
-embeddings = torch.cat(embeddings, dim=0)
+        # Generate embeddings
+        print('Generating embeddings...')
+        embeddings = []
+        batch_size = 1  # You can adjust this based on your GPU memory
 
-# Save embeddings
-print('Saving embeddings...')
-save_file = os.path.join(save_path, f'features_sub{subj}_dim{feat_dim}.pt')
-torch.save(embeddings, save_file)
+        with torch.no_grad():
+            for i in range(0, len(voxels), batch_size):
+                batch = voxels[i:i + batch_size].to(device)
+                with torch.cuda.amp.autocast():
+                    if fmri_encoder == 'brainx':
+                        emb = voxel2emb(batch, modal=f'fmri{subj}')
+                    else:
+                        emb = voxel2emb(batch)
+                    embeddings.append(emb.cpu())
 
-print(f'Features saved to {save_file}')
-print(f'Feature shape: {embeddings.shape}')
+        # Concatenate all embeddings
+        embeddings = torch.cat(embeddings, dim=0)
+
+        # Save embeddings with the same name in the feature directory, but with .pt extension
+        feature_file = os.path.join(feature_dir, voxel_file.replace('voxels', 'features').replace('.npy', '.pt'))
+        print(f'Saving embeddings to {feature_file}...')
+        torch.save(embeddings, feature_file)
+
+        print(f'Features saved to {feature_file}')
+        print(f'Feature shape: {embeddings.shape}')

@@ -8,12 +8,20 @@ from sklearn.metrics import accuracy_score
 from pathlib import Path
 import argparse
 import logging
-from utils.plot import plot_concept_accuracy, plot_feature_importance
+from utils.plot import plot_concept_accuracy_bar, plot_feature_importance
 from explanations.concept import CAR, CAV
 from explanations.feature import CARFeatureImportance
 from models.umbrae.model import BrainX, BrainXS
 import matplotlib.pyplot as plt
 from torch.utils.data import TensorDataset, DataLoader
+
+CATEGORIES = [
+    'person', 'chair', 'car', 'dining table', 'cup', 'bottle', 'bowl', 'handbag', 'truck', 'bench',
+    'book', 'backpack', 'sink', 'clock', 'dog', 'sports ball', 'cat', 'potted plant', 'cell phone',
+    'surfboard', 'knife', 'tie', 'skis', 'bus', 'traffic light', 'tv', 'bed', 'train', 'umbrella',
+    'toilet', 'tennis racket', 'spoon', 'couch', 'bird', 'skateboard', 'airplane', 'motorcycle',
+    'boat', 'vase', 'bicycle', 'fork', 'pizza', 'oven', 'giraffe', 'laptop'
+]
 
 # Utils for flattening the image features
 def vis_token_process(image_features, vis_token_scale):
@@ -29,71 +37,64 @@ def vis_token_process(image_features, vis_token_scale):
     return image_features
 
 def concept_accuracy(random_seed: int, plot: bool, save_dir: Path = Path.cwd() / "results/bar/concept_accuracy") -> None:
-    """
-    Train a classifier to distinguish between concept positive and negative samples.
-
-    Args:
-        random_seed (int): Seed for reproducibility.
-        plot (bool): Whether to generate and save plots.
-        save_dir (Path): Directory to save the results.
-    """
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     
     # Set random seeds for reproducibility
     np.random.seed(random_seed)
     torch.manual_seed(random_seed)
 
-    # Load positive and negative embeddings
-    positive_path = Path("concept/positive_feature_1.4.pt")
-    negative_path = Path("concept/negative_feature_1.4.pt")
-    positive_embeddings = torch.load(positive_path)  # Shape: [1000, 256, 1024]
-    negative_embeddings = torch.load(negative_path)  # Shape: [1000, 256, 1024]
-
-    X_pos = vis_token_process(positive_embeddings, 1).numpy()  # Shape: [1000, 1024]
-    X_neg = vis_token_process(negative_embeddings, 1).numpy()  # Shape: [1000, 1024]
-
-    X_pos = X_pos.reshape(positive_embeddings.size(0), -1) # Shape: [1000, 1024]
-    X_neg = X_neg.reshape(negative_embeddings.size(0), -1)  # Shape: [1000, 1024]
-    # X_pos = positive_embeddings.mean(dim=1).numpy()  # Shape: [1000, 1024]
-    # X_neg = negative_embeddings.mean(dim=1).numpy()  # Shape: [1000, 1024]
-
-    print(X_pos.shape, X_neg.shape)
-    # Create labels: 1 for positive, 0 for negative
-    y_pos = np.ones(X_pos.shape[0])
-    y_neg = np.zeros(X_neg.shape[0])
-
-    # Combine the data
-    X = np.concatenate((X_pos, X_neg), axis=0)
-    y = np.concatenate((y_pos, y_neg), axis=0)
-
-    # Split the data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=random_seed, stratify=y
-    )
-
-    # Initialize and train the CAR classifier
-    car = CAR(device)
-    car.fit(X_train, y_train)
-
-    # Make predictions on the test set
-    y_pred = car.predict(X_test)
-
-    # Calculate accuracy
-    acc = accuracy_score(y_test, y_pred)
-    logging.info(f"Test Accuracy: {acc:.4f}")
-
     # Prepare the results directory
     if not save_dir.exists():
         os.makedirs(save_dir)
 
-    # Save the accuracy metric
-    metrics_df = pd.DataFrame({'Test_Accuracy': [acc]})
-    metrics_df.to_csv(save_dir / "metrics.csv", index=False)
-    logging.info(f"Saved metrics to {save_dir / 'metrics.csv'}")
+    accuracies = {}
+
+    for category in CATEGORIES:
+        # Load positive and negative embeddings for each category
+        positive_path = Path(f"concept/feature/{category}_positive_features.pt")
+        negative_path = Path(f"concept/feature/{category}_negative_features.pt")
+        positive_embeddings = torch.load(positive_path)
+        negative_embeddings = torch.load(negative_path)
+
+        X_pos = vis_token_process(positive_embeddings, 1).numpy()
+        X_neg = vis_token_process(negative_embeddings, 1).numpy()
+
+        X_pos = X_pos.reshape(positive_embeddings.size(0), -1)
+        X_neg = X_neg.reshape(negative_embeddings.size(0), -1)
+
+        # Create labels: 1 for positive, 0 for negative
+        y_pos = np.ones(X_pos.shape[0])
+        y_neg = np.zeros(X_neg.shape[0])
+
+        # Combine the data
+        X = np.concatenate((X_pos, X_neg), axis=0)
+        y = np.concatenate((y_pos, y_neg), axis=0)
+
+        # Split the data into training and testing sets
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=random_seed, stratify=y
+        )
+
+        # Initialize and train the CAR classifier
+        car = CAR(device)
+        car.fit(X_train, y_train)
+
+        # Make predictions on the test set
+        y_pred = car.predict(X_test)
+
+        # Calculate accuracy
+        acc = accuracy_score(y_test, y_pred)
+        accuracies[category] = acc
+        logging.info(f"{category} Test Accuracy: {acc:.4f}")
+
+    # Save all accuracies to a single CSV file
+    metrics_df = pd.DataFrame(list(accuracies.items()), columns=['Category', 'Test_Accuracy'])
+    metrics_df.to_csv(save_dir / "all_categories_metrics.csv", index=False)
+    logging.info(f"Saved all metrics to {save_dir / 'all_categories_metrics.csv'}")
 
     # Generate and save plots if requested
     if plot:
-        plot_concept_accuracy(save_dir, "bar_dataset", "bar")
+        plot_concept_accuracy_bar(accuracies, save_dir)
         logging.info(f"Plots saved to {save_dir}")
 
 
