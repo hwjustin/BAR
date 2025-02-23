@@ -8,12 +8,14 @@ from sklearn.metrics import accuracy_score
 from pathlib import Path
 import argparse
 import logging
-from utils.plot import plot_concept_accuracy
+from utils.plot import plot_concept_accuracy, plot_feature_importance
 from explanations.concept import CAR, CAV
 from explanations.feature import CARFeatureImportance
-# from models.brain import BrainNetwork
+from models.umbrae.model import BrainX, BrainXS
 import matplotlib.pyplot as plt
+from torch.utils.data import TensorDataset, DataLoader
 
+# Utils for flattening the image features
 def vis_token_process(image_features, vis_token_scale):
     N, H_W, C = image_features.shape
     H = W = int(H_W ** 0.5)
@@ -94,98 +96,70 @@ def concept_accuracy(random_seed: int, plot: bool, save_dir: Path = Path.cwd() /
         plot_concept_accuracy(save_dir, "bar_dataset", "bar")
         logging.info(f"Plots saved to {save_dir}")
 
-def plot_feature_importance(attributions: np.ndarray, save_dir: Path, title: str = "Voxel Feature Importance") -> None:
-    """
-    Plot feature importance scores for all voxels.
-    
-    Args:
-        attributions (np.ndarray): Array of attribution scores for each voxel
-        save_dir (Path): Directory to save the plot
-        title (str): Title for the plot
-    """
-    plt.figure(figsize=(15, 5))
-    
-    # Calculate mean absolute attribution across samples
-    mean_attributions = np.abs(attributions).mean(axis=0)
-    
-    # Create the plot
-    plt.plot(range(len(mean_attributions)), mean_attributions)
-    plt.title(title)
-    plt.xlabel("Voxel Index")
-    plt.ylabel("Average Absolute Attribution Score")
-    
-    # Add a horizontal line at y=0 for reference
-    plt.axhline(y=0, color='r', linestyle='--', alpha=0.3)
-    
-    # Save the plot
-    plt.tight_layout()
-    plt.savefig(save_dir / "voxel_importance.png")
-    plt.close()
-    
-    # Also save top 100 most important voxels
-    top_indices = np.argsort(mean_attributions)[-100:]
-    top_values = mean_attributions[top_indices]
-    
-    plt.figure(figsize=(12, 6))
-    plt.bar(range(100), top_values[::-1])
-    plt.title("Top 100 Most Important Voxels")
-    plt.xlabel("Voxel Rank")
-    plt.ylabel("Attribution Score")
-    plt.tight_layout()
-    plt.savefig(save_dir / "top_100_voxels.png")
-    plt.close()
-    
-    # Save the top voxel indices and their scores
-    top_voxels_df = pd.DataFrame({
-        'Voxel_Index': top_indices[::-1],
-        'Attribution_Score': top_values[::-1]
-    })
-    top_voxels_df.to_csv(save_dir / "top_voxels.csv", index=False)
 
-def feature_importance(
-    random_seed: int,
-    batch_size: int,
-    plot: bool,
-    save_dir: Path = Path.cwd() / "results/bar/feature_importance",
-) -> None:
+
+def feature_importance(random_seed: int, batch_size: int, plot: bool, save_dir: Path = Path.cwd() / "results/bar/feature_importance") -> None:
     """
-    Compute feature importance using CAR classifier for the bar dataset.
-    
+    Compute feature importance for the Bar dataset using a trained model.
+
     Args:
-        random_seed (int): Random seed for reproducibility
-        batch_size (int): Batch size for processing
-        plot (bool): Whether to generate and save plots
-        save_dir (Path): Directory to save results
+        random_seed (int): Seed for reproducibility.
+        batch_size (int): Batch size for processing.
+        plot (bool): Whether to generate and save plots.
+        save_dir (Path): Directory to save the results.
     """
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    torch.manual_seed(random_seed)
-    np.random.seed(random_seed)
-
-    if not save_dir.exists():
-        os.makedirs(save_dir)
-
-    # Load the brain network model
-    num_voxels = 15724  # From fMRI configuration
-    out_dim = 768
-    model = BrainNetwork(in_dim=num_voxels, out_dim=out_dim)
     
+    # Set random seeds for reproducibility
+    np.random.seed(random_seed)
+    torch.manual_seed(random_seed)
+
+    # Load voxel data
+    positive_voxel_path = Path("concept/positive_voxels.npy")
+    negative_voxel_path = Path("concept/negative_voxels.npy")
+    positive_voxels = np.load(positive_voxel_path)
+    negative_voxels = np.load(negative_voxel_path)
+
+    # Convert to torch tensors and take mean across repetitions
+    positive_voxels = torch.from_numpy(positive_voxels).float().mean(axis=1)
+    negative_voxels = torch.from_numpy(negative_voxels).float().mean(axis=1)
+
+    # Initialize model
+    voxels_per_subj = {1: 15724, 2: 14278, 3: 15226, 4: 13153, 5: 13039, 6: 17907, 7: 12682, 8: 14386}
+    num_voxels = voxels_per_subj.get(5)  # Assuming subject 5, adjust as needed
+
+    kwargs = {'hidden_dim': 1024, 'out_dim': 1024, 'num_latents': 256, 
+              'use_norm': False, 'use_token': False}
+    voxel2emb = BrainX(**kwargs)
+    voxel2emb.to(device)
+
     # Load checkpoint
-    outdir = 'train_logs/prior_1x768_final_subj01_bimixco_softclip_byol'
-    ckpt_path = os.path.join(outdir, 'last.pth')
-    checkpoint = torch.load(ckpt_path, map_location=device)
-    model.load_state_dict(checkpoint['model_state_dict'], strict=False)
-    model.to(device)
-    model.eval()
+    checkpoint = torch.load("train_logs_umbrae/brainx-v-1-4/last.pth", map_location='cpu', weights_only=False)
+    voxel2emb.load_state_dict(checkpoint['model_state_dict'], strict=False)
+    voxel2emb.eval()
 
-    # Load positive and negative embeddings
-    positive_path = Path("concept/positive_embedding.pt")
-    negative_path = Path("concept/negative_embedding.pt")
-    positive_embeddings = torch.load(positive_path)
-    negative_embeddings = torch.load(negative_path)
+    # Generate embeddings
+    def generate_embeddings(voxels):
+        embeddings = []
+        with torch.no_grad():
+            for i in range(0, len(voxels), batch_size):
+                batch = voxels[i:i + batch_size].to(device)
+                with torch.cuda.amp.autocast():
+                    emb = voxel2emb(batch)
+                embeddings.append(emb.cpu())
+        return torch.cat(embeddings, dim=0)
 
-    # Reshape embeddings and create labels
-    X_pos = positive_embeddings.view(positive_embeddings.size(0), -1).numpy()
-    X_neg = negative_embeddings.view(negative_embeddings.size(0), -1).numpy()
+    # Generate embeddings for positive and negative voxels
+    X_pos = generate_embeddings(positive_voxels)
+    X_neg = generate_embeddings(negative_voxels)
+
+    X_pos = vis_token_process(X_pos, 1).numpy()  # Shape: [1000, 1024]
+    X_neg = vis_token_process(X_neg, 1).numpy()  # Shape: [1000, 1024]
+
+    X_pos = X_pos.reshape(X_pos.shape[0], -1) # Shape: [1000, 1024]
+    X_neg = X_neg.reshape(X_neg.shape[0], -1)  # Shape: [1000, 1024]
+
+    # Create labels: 1 for positive, 0 for negative
     y_pos = np.ones(X_pos.shape[0])
     y_neg = np.zeros(X_neg.shape[0])
 
@@ -193,53 +167,31 @@ def feature_importance(
     X = np.concatenate((X_pos, X_neg), axis=0)
     y = np.concatenate((y_pos, y_neg), axis=0)
 
-    # Train CAR classifier
+    # Initialize and train the CAR classifier
     car = CAR(device)
     car.fit(X, y)
-    car.tune_kernel_width(X, y)
+    # car.tune_kernel_width(X, y)
 
-    # Load voxel data
-    positive_voxels = np.load('concept/positive_voxels.npy')
-    negative_voxels = np.load('concept/negative_voxels.npy')
-    
-    # Combine voxels and convert to torch tensors
-    voxels = np.concatenate((positive_voxels, negative_voxels), axis=0)
-    voxels = torch.from_numpy(voxels).to(device)
-    
-    # Create labels for voxels (same order as the embeddings)
-    voxel_labels = np.concatenate((np.ones(positive_voxels.shape[0]), 
-                                 np.zeros(negative_voxels.shape[0])))
-    voxel_labels = torch.from_numpy(voxel_labels).to(device)  # Convert to torch tensor
-    
-    # Create data loader
-    dataset = torch.utils.data.TensorDataset(voxels, voxel_labels)
-    data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    # Create a new dataset for feature importance
+    X_voxels = torch.cat((positive_voxels, negative_voxels), dim=0)
+    y_embeddings = torch.cat((torch.tensor(X_pos), torch.tensor(X_neg)), dim=0)
+    test_dataset = TensorDataset(X_voxels, y_embeddings)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
 
     # Compute feature importance
-    attribution_method = CARFeatureImportance(
-        "Integrated Gradient",
-        car,
-        model,
-        device
-    )
-    
-    # Use mean voxel activation as baseline
-    baselines = torch.mean(voxels, dim=0, keepdim=True).to(device)
-    
-    # Calculate attributions
-    attributions = attribution_method.attribute(
-        data_loader, 
-        baselines=baselines,
-        internal_batch_size=batch_size
-    )
+    attribution_method = CARFeatureImportance("Integrated Gradient", car, voxel2emb, device)
+    attributions = attribution_method.attribute(test_loader, baselines=torch.zeros((1, 15724)).to(device))
 
-    # Save results
-    np.save(save_dir / "attributions.npy", attributions)
-    logging.info(f"Saved attributions to {save_dir / 'attributions.npy'}")
+    # Save the feature importance results
+    if not save_dir.exists():
+        os.makedirs(save_dir)
+    np.savez(save_dir / "attributions.npz", attributions=attributions)
+    logging.info(f"Saved feature importance to {save_dir / 'attributions.npz'}")
 
+    # Generate and save plots if requested
     if plot:
         plot_feature_importance(attributions, save_dir)
-        logging.info(f"Feature importance plots saved to {save_dir}")
+        logging.info(f"Plots saved to {save_dir}")
 
 if __name__ == "__main__":
     # Configure logging

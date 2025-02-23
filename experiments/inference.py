@@ -54,7 +54,7 @@ voxels_per_subj = {1: 15724, 2: 14278, 3: 15226, 4: 13153, 5: 13039, 6: 17907, 7
 num_voxels = voxels_per_subj.get(subj)
 
 kwargs = {'hidden_dim': 1024, 'out_dim': feat_dim, 'num_latents': 256, 
-          'use_norm': use_norm, 'use_token': True}
+          'use_norm': use_norm, 'use_token': use_token}
 
 if fmri_encoder == 'brainx':
     voxel2emb = BrainX(**kwargs)

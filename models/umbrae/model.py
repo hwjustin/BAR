@@ -155,6 +155,10 @@ class BrainX(nn.Module):
         x = self.perceiver(x)
         return x
     
+    def input_to_representation(self, x, modal='fmri1'):
+        x = self.forward(x, modal)
+        x = torch.mean(x, dim=1)
+        return x
 # brain encoder for single-subject training and inference
 class BrainXS(nn.Module):
     def __init__(self, in_dim=15724, hidden_dim=1024, out_dim=1024, num_latents=256):

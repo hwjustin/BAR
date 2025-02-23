@@ -297,6 +297,35 @@ def remove_text_from_labels(ax, removed_text: str) -> None:
     ax.set_xticklabels(labels, rotation=0)
 
 
+def plot_feature_importance(attributions: np.ndarray, save_dir: Path, title: str = "Voxel Feature Importance") -> None:
+    """
+    Plot feature importance scores for all voxels.
+
+    Args:
+        attributions (np.ndarray): Array of attribution scores for each voxel.
+        save_dir (Path): Directory to save the plot.
+        title (str): Title for the plot.
+    """
+    plt.figure(figsize=(15, 5))
+    
+    # Calculate mean absolute attribution across samples
+    mean_attributions = np.abs(attributions).mean(axis=0)
+    
+    # Create the plot
+    plt.bar(range(len(mean_attributions)), mean_attributions)
+    plt.title(title)
+    plt.xlabel("Voxel Index")
+    plt.ylabel("Average Absolute Attribution Score")
+    
+    # Add a horizontal line at y=0 for reference
+    plt.axhline(y=0, color='r', linestyle='--', alpha=0.3)
+    
+    # Save the plot
+    plt.tight_layout()
+    plt.savefig(save_dir / "voxel_importance.png")
+    plt.close()
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     parser = argparse.ArgumentParser()
