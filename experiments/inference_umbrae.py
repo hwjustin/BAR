@@ -47,8 +47,8 @@ if torch.cuda.is_available():
 voxels_per_subj = {1: 15724, 2: 14278, 3: 15226, 4: 13153, 5: 13039, 6: 17907, 7: 12682, 8: 14386}
 num_voxels = voxels_per_subj.get(subj)
 
-kwargs = {'hidden_dim': 1024, 'out_dim': feat_dim, 'num_latents': 256, 
-          'use_norm': use_norm, 'use_token': use_token}
+kwargs = {'modal': f'fmri{subj}', 'hidden_dim': 1024, 'out_dim': feat_dim, 'num_latents': 256, 
+          'use_norm': use_norm, 'use_token': use_token }
 
 if fmri_encoder == 'brainx':
     voxel2emb = BrainX(**kwargs)
@@ -92,7 +92,7 @@ for voxel_file in os.listdir(voxel_dir):
                 batch = voxels[i:i + batch_size].to(device)
                 with torch.cuda.amp.autocast():
                     if fmri_encoder == 'brainx':
-                        emb = voxel2emb(batch, modal=f'fmri{subj}')
+                        emb = voxel2emb(batch)
                     else:
                         emb = voxel2emb(batch)
                     embeddings.append(emb.cpu())
