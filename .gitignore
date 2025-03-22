@@ -138,7 +138,7 @@ results/
 # NLP
 .vector_cache
 
-train_logs/
+train_logs_mindeye/
 train_logs_umbrae/
 webdataset_avg_split/
 checkpoints/

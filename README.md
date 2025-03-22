@@ -12,10 +12,18 @@ conda env create -f bar_env.yml
 conda activate bar
 ```
 
-**Download the NSD Dataset**
+**Download Required Dataset**
+
+1. NSD Dataset: https://huggingface.co/datasets/pscotti/naturalscenesdataset/tree/main
+
+Please download the 'webdataset_avg_split' from:  (provided by MindEye Project)
+
+Coco Dataset: 
 
 
 **Download the pretrained MindEye and UMBRAE models**
+1. [MindEye](https://huggingface.co/datasets/pscotti/naturalscenesdataset/tree/main/mindeye_models): Please download all "prior_1x768_final_subjXX_bimixco_softclip_byol" folders and place them in `train_logs_mindeye`.
+2. [UMBRAE](https://huggingface.co/datasets/weihaox/umbrae/tree/main/train_logs): Please download 'brainx-v-1-4' and place it in `train_logs_umbrae`.
 
 
 ## 2. Toy example

@@ -7,7 +7,7 @@ from models.mindeye.brain import BrainNetwork, BrainDiffusionPriorOld
 
 # Argument parser setup
 parser = argparse.ArgumentParser()
-parser.add_argument('--ckpt_dir', type=str, default='train_logs',
+parser.add_argument('--ckpt_dir', type=str, default='train_logs_mindeye',
                     help='directory to load checkpoints from')
 parser.add_argument('--out_dim', type=int, default=768,
                     help='output dimension of the voxel2clip model')
