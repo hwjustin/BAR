@@ -1,24 +1,22 @@
-# Concept Activation Regions
+# Brain Activation Regions
 
-![image](main_figure.png "Concept Activation Regions")
-Code Author: Jonathan Crabbé ([jc2133@cam.ac.uk](mailto:jc2133@cam.ac.uk))
+![image](main_figure.png "Brain Activation Region")
 
-This repository contains the implementation of CARs, a framework to explain the latent
-representations of neural networks with the help of user-defined concepts.
-For more details, please read our [NeurIPS 2022 paper](https://arxiv.org/abs/2209.11222): 'Concept Activation Regions: 
-A Generalized Framework For Concept-Based Explanations'.
+This repository contains the implementation of BAR, a unified concept explanation framework for brain encoders. We adapt the CAR classifier to explain human-interpretable concepts learned by these models and identify input voxels contributing to the learning. 
 
-## 1. Installation
-From repository:
-1. Clone the repository
-2. Create a new virtual environment with Python 3.9
-3. Run the following command from the repository folder:
+## 1. Setup
+**Environment Setup**
 
 ```shell
-pip install -r requirements.txt
+conda env create -f bar_env.yml
+conda activate bar
 ```
 
-When the packages are installed, you are ready to perform concept explanations.
+**Download the NSD Dataset**
+
+
+**Download the pretrained MindEye and UMBRAE models**
+
 
 ## 2. Toy example
 
