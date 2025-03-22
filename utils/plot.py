@@ -339,6 +339,10 @@ def plot_concept_accuracy_bar(accuracies: dict, results_dir: Path) -> None:
     plt.xticks(rotation=90)
     plt.ylabel("Test Accuracy")
     plt.title("Concept Accuracy for Each Category")
+    
+    # Set static y-axis limits
+    plt.ylim(0, 1)  # Assuming accuracy is between 0 and 1
+
     plt.tight_layout()
     plt.savefig(results_dir / "concept_accuracy_all_categories.pdf")
     plt.close()

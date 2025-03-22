@@ -143,5 +143,8 @@ train_logs_umbrae/
 webdataset_avg_split/
 checkpoints/
 fake_concept/
-concept/
+concept_subj01/
+concept_subj02/
+concept_subj05/
+concept_subj07/
 archive/

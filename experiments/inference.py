@@ -67,8 +67,8 @@ voxel2emb.load_state_dict(checkpoint['model_state_dict'], strict=False)
 voxel2emb.eval()
 
 # Define directories
-voxel_dir = 'concept/voxel'
-feature_dir = 'concept/feature'
+voxel_dir = f'concept_subj0{subj}/voxel'
+feature_dir = f'concept_subj0{subj}/feature'
 os.makedirs(feature_dir, exist_ok=True)
 
 # Process each voxel file in the directory

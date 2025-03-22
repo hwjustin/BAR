@@ -111,12 +111,12 @@ class Perceiver(nn.Module):
 
 # brain encoder for corss-subject training and inference
 class BrainX(nn.Module):
-    def __init__(self, hidden_dim=1024, out_dim=1024, num_latents=256, use_token=False, use_norm=False, act_first=False):
+    def __init__(self, modal='fmri1', hidden_dim=1024, out_dim=1024, num_latents=256, use_token=False, use_norm=False, act_first=False):
         super().__init__()
         self.subs = [1, 2, 5, 7]
         self.num_voxels = {1: 15724, 2: 14278, 3: 15226, 4: 13153, 5: 13039, 6: 17907, 7: 12682, 8: 14386}
         self.use_token = use_token
-
+        self.modal = modal
         norm_func = partial(nn.LayerNorm, normalized_shape=num_latents)
         act_fn = nn.GELU
         act_and_norm = (act_fn, norm_func) if act_first else (norm_func, act_fn)
@@ -142,21 +142,21 @@ class BrainX(nn.Module):
 
         self.perceiver = Perceiver(patch_embed_dim=hidden_dim, hidden_size=out_dim, num_latents=num_latents)          
 
-    def forward(self, x, modal='fmri1'):
+    def forward(self, x):
         x = x.unsqueeze(1)
         x = x.transpose(1, 2)
-        x = self.lin1[modal](x)
+        x = self.lin1[self.modal](x)
         
         x = x.transpose(1, 2)
-        x = self.lin2[modal](x)
+        x = self.lin2[self.modal](x)
         if self.use_token:
-            token = self.token[modal].repeat(x.size(0), 1, 1)
+            token = self.token[self.modal].repeat(x.size(0), 1, 1)
             x = torch.cat([x, token], dim=1)
         x = self.perceiver(x)
         return x
     
-    def input_to_representation(self, x, modal='fmri1'):
-        x = self.forward(x, modal)
+    def input_to_representation(self, x):
+        x = self.forward(x)
         x = torch.mean(x, dim=1)
         return x
 # brain encoder for single-subject training and inference

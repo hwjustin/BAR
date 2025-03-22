@@ -15,12 +15,39 @@ from models.umbrae.model import BrainX, BrainXS
 import matplotlib.pyplot as plt
 from torch.utils.data import TensorDataset, DataLoader
 
-CATEGORIES = [
+CATEGORIES_SUBJ01 = [
     'person', 'chair', 'car', 'dining table', 'cup', 'bottle', 'bowl', 'handbag', 'truck', 'bench',
     'book', 'backpack', 'sink', 'clock', 'dog', 'sports ball', 'cat', 'potted plant', 'cell phone',
     'surfboard', 'knife', 'tie', 'skis', 'bus', 'traffic light', 'tv', 'bed', 'train', 'umbrella',
     'toilet', 'tennis racket', 'spoon', 'couch', 'bird', 'skateboard', 'airplane', 'motorcycle',
     'boat', 'vase', 'bicycle', 'fork', 'pizza', 'oven', 'giraffe', 'laptop'
+]
+
+# List of categories from 'person' to 'laptop' for subject 2
+CATEGORIES_SUBJ02 = [
+    'person', 'car', 'chair', 'dining table', 'cup', 'bottle', 'bowl', 'handbag', 'bench', 'truck',
+    'backpack', 'book', 'clock', 'sink', 'traffic light', 'cell phone', 'cat', 'sports ball', 'dog',
+    'potted plant', 'surfboard', 'bus', 'train', 'umbrella', 'knife', 'toilet', 'tv', 'tennis racket',
+    'couch', 'bed', 'airplane', 'bicycle', 'skis', 'spoon', 'fork', 'vase', 'skateboard', 'bird',
+    'motorcycle', 'laptop', 'boat', 'pizza', 'horse', 'oven', 'tie'
+]
+
+# List of categories from 'person' to 'laptop' for subject 5
+CATEGORIES_SUBJ05 = [
+    'person', 'car', 'chair', 'dining table', 'cup', 'bottle', 'bowl', 'truck', 'handbag', 'bench',
+    'backpack', 'clock', 'book', 'sink', 'dog', 'sports ball', 'cell phone', 'surfboard', 'knife', 'cat',
+    'toilet', 'traffic light', 'umbrella', 'tv', 'potted plant', 'train', 'bed', 'couch', 'bird', 'spoon',
+    'bus', 'fork', 'motorcycle', 'skateboard', 'pizza', 'tennis racket', 'vase', 'laptop', 'airplane',
+    'bicycle', 'cake', 'tie', 'boat', 'giraffe', 'skis', 'oven'
+]
+
+# List of categories from 'person' to 'laptop' for subject 7
+CATEGORIES_SUBJ07 = [
+    'person', 'chair', 'car', 'dining table', 'cup', 'bottle', 'bowl', 'handbag', 'truck', 'bench',
+    'clock', 'backpack', 'sink', 'book', 'sports ball', 'dog', 'traffic light', 'toilet', 'knife',
+    'potted plant', 'surfboard', 'train', 'bus', 'cell phone', 'airplane', 'cat', 'tv', 'vase', 'bird',
+    'skis', 'tennis racket', 'pizza', 'umbrella', 'tie', 'couch', 'spoon', 'bicycle', 'fork', 'bed',
+    'horse', 'laptop', 'skateboard', 'motorcycle', 'boat', 'oven', 'giraffe'
 ]
 
 # Utils for flattening the image features
@@ -36,23 +63,34 @@ def vis_token_process(image_features, vis_token_scale):
     image_features = image_features.reshape(N, -1, C)
     return image_features
 
-def concept_accuracy(random_seed: int, plot: bool, save_dir: Path = Path.cwd() / "results/bar/concept_accuracy") -> None:
+def concept_accuracy(random_seed: int, plot: bool, subj: int = 1, save_dir: Path = Path.cwd() / "results/bar/concept_accuracy") -> None:
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     
     # Set random seeds for reproducibility
     np.random.seed(random_seed)
     torch.manual_seed(random_seed)
 
+    save_dir = save_dir / f"subj0{subj}"
     # Prepare the results directory
     if not save_dir.exists():
         os.makedirs(save_dir)
+    
 
     accuracies = {}
 
-    for category in CATEGORIES:
+    if subj == 1:
+        categories = CATEGORIES_SUBJ01
+    elif subj == 2:
+        categories = CATEGORIES_SUBJ02
+    elif subj == 5:
+        categories = CATEGORIES_SUBJ05
+    elif subj == 7:
+        categories = CATEGORIES_SUBJ07
+
+    for category in categories:
         # Load positive and negative embeddings for each category
-        positive_path = Path(f"concept/feature/{category}_positive_features.pt")
-        negative_path = Path(f"concept/feature/{category}_negative_features.pt")
+        positive_path = Path(f"concept_subj0{subj}/feature_Mindeye/{category}_positive_features.pt")
+        negative_path = Path(f"concept_subj0{subj}/feature_Mindeye/{category}_negative_features.pt")
         positive_embeddings = torch.load(positive_path)
         negative_embeddings = torch.load(negative_path)
 
@@ -99,7 +137,7 @@ def concept_accuracy(random_seed: int, plot: bool, save_dir: Path = Path.cwd() /
 
 
 
-def feature_importance(random_seed: int, batch_size: int, plot: bool, save_dir: Path = Path.cwd() / "results/bar/feature_importance") -> None:
+def feature_importance(random_seed: int, batch_size: int, plot: bool, concept: str, subj: int = 1, save_dir: Path = Path.cwd() / "results/bar/feature_importance") -> None:
     """
     Compute feature importance for the Bar dataset using a trained model.
 
@@ -115,9 +153,17 @@ def feature_importance(random_seed: int, batch_size: int, plot: bool, save_dir: 
     np.random.seed(random_seed)
     torch.manual_seed(random_seed)
 
+    save_dir = save_dir / f"subj0{subj}" / concept
+    # Prepare the results directory
+    if not save_dir.exists():
+        os.makedirs(save_dir)
+
+    voxels_per_subj = {1: 15724, 2: 14278, 3: 15226, 4: 13153, 5: 13039, 6: 17907, 7: 12682, 8: 14386}
+    voxel_dim = voxels_per_subj.get(subj)
+
     # Load voxel data
-    positive_voxel_path = Path("concept/positive_voxels.npy")
-    negative_voxel_path = Path("concept/negative_voxels.npy")
+    positive_voxel_path = Path(f"concept_subj0{subj}/voxel/{concept}_positive_voxels.npy")
+    negative_voxel_path = Path(f"concept_subj0{subj}/voxel/{concept}_negative_voxels.npy")
     positive_voxels = np.load(positive_voxel_path)
     negative_voxels = np.load(negative_voxel_path)
 
@@ -126,10 +172,7 @@ def feature_importance(random_seed: int, batch_size: int, plot: bool, save_dir: 
     negative_voxels = torch.from_numpy(negative_voxels).float().mean(axis=1)
 
     # Initialize model
-    voxels_per_subj = {1: 15724, 2: 14278, 3: 15226, 4: 13153, 5: 13039, 6: 17907, 7: 12682, 8: 14386}
-    num_voxels = voxels_per_subj.get(5)  # Assuming subject 5, adjust as needed
-
-    kwargs = {'hidden_dim': 1024, 'out_dim': 1024, 'num_latents': 256, 
+    kwargs = {'modal': f'fmri{subj}', 'hidden_dim': 1024, 'out_dim': 1024, 'num_latents': 256, 
               'use_norm': False, 'use_token': False}
     voxel2emb = BrainX(**kwargs)
     voxel2emb.to(device)
@@ -171,7 +214,7 @@ def feature_importance(random_seed: int, batch_size: int, plot: bool, save_dir: 
     # Initialize and train the CAR classifier
     car = CAR(device)
     car.fit(X, y)
-    # car.tune_kernel_width(X, y)
+    car.tune_kernel_width(X, y)
 
     # Create a new dataset for feature importance
     X_voxels = torch.cat((positive_voxels, negative_voxels), dim=0)
@@ -181,7 +224,7 @@ def feature_importance(random_seed: int, batch_size: int, plot: bool, save_dir: 
 
     # Compute feature importance
     attribution_method = CARFeatureImportance("Integrated Gradient", car, voxel2emb, device)
-    attributions = attribution_method.attribute(test_loader, baselines=torch.zeros((1, 15724)).to(device))
+    attributions = attribution_method.attribute(test_loader, baselines=torch.zeros((1, voxel_dim)).to(device))
 
     # Save the feature importance results
     if not save_dir.exists():
@@ -210,12 +253,16 @@ if __name__ == "__main__":
                        help="Batch size for processing")
     parser.add_argument("--plot", action="store_true", 
                        help="Whether to generate plots.")
+    parser.add_argument("--subj", type=int, default=1,
+                       help="Subject number", choices=[1, 2, 5, 7])
+    parser.add_argument("--concept", type=str, default="person",
+                       help="Concept name")
     args = parser.parse_args()
 
     # Execute the appropriate function based on the experiment name
     if args.name == "concept_accuracy":
-        concept_accuracy(args.random_seed, args.plot)
+        concept_accuracy(args.random_seed, args.plot, args.subj)
     elif args.name == "feature_importance":
-        feature_importance(args.random_seed, args.batch_size, args.plot)
+        feature_importance(args.random_seed, args.batch_size, args.plot, args.concept, args.subj)
     else:
         raise ValueError(f"Unknown experiment name: {args.name}")
