@@ -3,7 +3,7 @@ import os
 import torch
 from datetime import datetime
 import argparse
-from models.brain import BrainNetwork, BrainDiffusionPriorOld
+from models.mindeye.brain import BrainNetwork, BrainDiffusionPriorOld
 
 # Argument parser setup
 parser = argparse.ArgumentParser()
