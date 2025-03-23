@@ -1,4 +1,4 @@
-# Brain Activation Regions
+# Brain Activation Region
 
 ![image](main_figure.png "Brain Activation Region")
 
