@@ -29,7 +29,9 @@ conda activate bar
 
 1. [MindEye](https://huggingface.co/datasets/pscotti/naturalscenesdataset/tree/main/mindeye_models): Please download all "prior_1x768_final_subjXX_bimixco_softclip_byol" folders and place them in `train_logs_mindeye`.
 
-2. [UMBRAE](https://huggingface.co/datasets/weihaox/umbrae/tree/main/train_logs): Please download 'brainx-v-1-4' and place it in `train_logs_umbrae`.
+2. [MindEye's Diffusion Prior](https://huggingface.co/nousr/conditioned-prior/tree/main/vit-l-14/aesthetic): Please download the pretrained checkpoint and place it in `checkpoints`.
+
+3. [UMBRAE](https://huggingface.co/datasets/weihaox/umbrae/tree/main/train_logs): Please download 'brainx-v-1-4' and place it in `train_logs_umbrae`.
 
 
 **Install 3D Medical Imaging Software**: You may download ITK-SNAP from [here](http://www.itksnap.org/pmwiki/pmwiki.php).
