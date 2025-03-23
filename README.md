@@ -21,7 +21,7 @@ conda activate bar
 
 1. [NSD Dataset](https://huggingface.co/datasets/pscotti/naturalscenesdataset/tree/main): Please download the 'webdataset_avg_split' and place it in `data/webdataset_avg_split`.
 
-2. [Coco Dataset](https://cocodataset.org/#download): Please download 2017 images and annotations and place them in `coco/images` and `coco/annotations`.
+2. [COCO Dataset](https://cocodataset.org/#download): Please download 2017 images and annotations and place them in `coco/images` and `coco/annotations`.
 
 3. [NSD Stim Info](https://natural-scenes-dataset.s3.amazonaws.com/index.html#nsddata/experiments/nsd/): Please download the `nsd_stim_info_merged.csv` file and place it in `data/masks`.
 
