@@ -44,3 +44,4 @@ dependencies:
     - ftfy
     - regex
     - dalle2-pytorch
+    - cython

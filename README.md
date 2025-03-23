@@ -5,6 +5,11 @@
 This repository contains the implementation of BAR, a unified concept explanation framework for brain encoders. We adapt the CAR classifier to explain human-interpretable concepts learned by these models and identify input voxels contributing to the learning. 
 
 ## 1. Setup
+**Clone the repository**
+```shell
+git clone --recurse-submodules git@github.com:hwjustin/BAR.git
+```
+
 **Environment Setup**
 
 ```shell
@@ -12,19 +17,48 @@ conda env create -f bar_env.yml
 conda activate bar
 ```
 
-**Download Required Dataset**
+**Download Required Datasets and Files**
 
-1. [NSD Dataset](https://huggingface.co/datasets/pscotti/naturalscenesdataset/tree/main): Please download the 'webdataset_avg_split' and place it in `webdataset_avg_split`.
+1. [NSD Dataset](https://huggingface.co/datasets/pscotti/naturalscenesdataset/tree/main): Please download the 'webdataset_avg_split' and place it in `data/webdataset_avg_split`.
 
-2. [Coco Dataset](https://huggingface.co/datasets/lukas/coco-captions): Please download the 'train.json' and place it in `data/coco`.
+2. [Coco Dataset](https://cocodataset.org/#download): Please download 2017 images and annotations and place them in `coco/images` and `coco/annotations`.
 
+3. [NSD Stim Info](https://natural-scenes-dataset.s3.amazonaws.com/index.html#nsddata/experiments/nsd/): Please download the `nsd_stim_info_merged.csv` file and place it in `data`.
 
 **Download the pretrained MindEye and UMBRAE models**
+
 1. [MindEye](https://huggingface.co/datasets/pscotti/naturalscenesdataset/tree/main/mindeye_models): Please download all "prior_1x768_final_subjXX_bimixco_softclip_byol" folders and place them in `train_logs_mindeye`.
+
 2. [UMBRAE](https://huggingface.co/datasets/weihaox/umbrae/tree/main/train_logs): Please download 'brainx-v-1-4' and place it in `train_logs_umbrae`.
 
 
 **Install 3D Medical Imaging Software**: You may download ITK-SNAP from [here](http://www.itksnap.org/pmwiki/pmwiki.php).
+
+## 2. Concepts and Embeddings Generation
+
+**Setup COCO API**
+```shell
+cd coco/PythonAPI
+make
+cd ../..
+```
+
+**Generate Concept Positive and Negative Voxels**
+```shell
+python -m experiments.concept_generation --subj 1
+```
+
+**Generate Concept Positive and Negative Embeddings**
+```shell
+# MindEye Model
+python -m experiments.inference_mindeye --subj 1
+
+# UMBRAE Model
+python -m experiments.inference_umbrae --fmri_encoder 'brainx' --subj 1
+```
+
+## 3. CAR Classifier Fitting
+
 
 
 ## 2. Toy example

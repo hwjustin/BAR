@@ -63,7 +63,7 @@ print(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 # Define directory for voxel data
 voxel_dir = f'concept_subj0{subj}/voxel'
-feature_dir = os.path.join(f'concept_subj0{subj}', 'feature_Mindeye')
+feature_dir = os.path.join(f'concept_subj0{subj}', 'feature_mindeye')
 os.makedirs(feature_dir, exist_ok=True)
 
 # Process each voxel file in the directory
