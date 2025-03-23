@@ -8,8 +8,6 @@ from models.umbrae.model import BrainX, BrainXS
 parser = argparse.ArgumentParser()
 parser.add_argument('--brainx_path', default='train_logs_umbrae/brainx-v-1-4/last.pth',
                     help='path to the trained brain encoder model')
-# parser.add_argument('--voxel_path', type=str, required=True,
-#                     help='path to the voxel data (.npy file)')
 parser.add_argument('--fmri_encoder', type=str, default='brainx',
                     help='type of brainnet', choices=['brainx', 'brainxs'])
 parser.add_argument('--use_norm', type=bool, default=False,

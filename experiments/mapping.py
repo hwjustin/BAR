@@ -24,10 +24,8 @@ def map_flat_to_3d(flat_data, mask_path='mask/nsdgeneral_subj07.nii.gz'):
     print(f"Flat data length: {len(flat_data)}, Number of non-zero voxels in the mask: {n_voxels}")
     assert len(flat_data) == n_voxels, "Flat data length does not match the number of non-zero voxels in the mask."
     
-    # Create an empty 3D array with the same shape as the mask
     mapped_data = np.zeros(mask.shape)
     
-    # Fill the non-zero positions in the 3D array with the flat data
     mapped_data[mask_binary] = flat_data
     
     return mapped_data, original_affine
@@ -38,25 +36,21 @@ if __name__ == "__main__":
     parser.add_argument("--concept", type=str, default="person")
     args = parser.parse_args()
 
-    # Load flat data from the .npz file
     data = np.load(f'results/bar/feature_importance/subj0{args.subj}/{args.concept}/attributions.npz')
-    attributions = data['attributions']  # Use the correct key 'attributions'
+    attributions = data['attributions']
 
-    # Calculate mean absolute attribution across samples
     mean_attributions = np.abs(attributions).mean(axis=0)
 
     # Apply a power transformation to highlight top attributions
-    power_exponent = 3  # You can adjust this value for more or less contrast
+    power_exponent = 3 
     power_attributions = np.power(mean_attributions, power_exponent)
 
-    # Normalize the power_attributions to the range [0, 255]
     min_val = np.min(power_attributions)
     max_val = np.max(power_attributions)
-    normalized_flat_data = 255 * (power_attributions - min_val) / (max_val - min_val)  # Scale to range [0, 255]
+    normalized_flat_data = 255 * (power_attributions - min_val) / (max_val - min_val)
 
     mapped_data, original_affine = map_flat_to_3d(normalized_flat_data, mask_path=f'data/masks/nsdgeneral_subj0{args.subj}.nii.gz')
     
-    # Save the mapped data as a new NIfTI file using the original affine
     new_nifti = nib.Nifti1Image(mapped_data, affine=original_affine)
     nib.save(new_nifti, f'results/bar/feature_importance/subj0{args.subj}/{args.concept}/mapped_data.nii.gz')
     print("Mapped data saved as 'mapped_data.nii.gz'")
