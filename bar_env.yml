@@ -45,3 +45,4 @@ dependencies:
     - regex
     - dalle2-pytorch
     - cython
+    - nibabel
