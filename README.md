@@ -23,9 +23,9 @@ conda activate bar
 
 2. [COCO Dataset](https://cocodataset.org/#download): Please download 2017 images and annotations and place them in `coco/images` and `coco/annotations`.
 
-3. [NSD Stim Info](https://natural-scenes-dataset.s3.amazonaws.com/index.html#nsddata/experiments/nsd/): Please download the `nsd_stim_info_merged.csv` file and place it in `data/masks`.
+3. [NSD Stim Info](https://natural-scenes-dataset.s3.amazonaws.com/index.html#nsddata/experiments/nsd/): Please download the `nsd_stim_info_merged.csv` file and place it in `data`.
 
-4. [NSD General Mask](https://natural-scenes-dataset.s3.amazonaws.com/index.html#nsddata/ppdata/subj01/func1pt8mm/roi/): Please download the `nsdgeneral.nii.gz` file for four subjects, rename them as `nsdgeneral_subjXX.nii.gz`and place them in `data`.
+4. [NSD General Mask](https://natural-scenes-dataset.s3.amazonaws.com/index.html#nsddata/ppdata/subj01/func1pt8mm/roi/): Please download the `nsdgeneral.nii.gz` file for four subjects, rename them as `nsdgeneral_subjXX.nii.gz`and place them in `data/masks`.
 
 **Download the pretrained MindEye and UMBRAE models**
 
