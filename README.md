@@ -70,7 +70,7 @@ python -m experiments.bar --name concept_accuracy --subj 1 --model mindeye --plo
 ## 4. Voxel Attributions and Visualisation
 **Generate Voxel Attributions on Concept Density Function**
 ```shell
-python -m experiments.mapping --subj 1 --concept person
+python -m experiments.bar --name feature_importance --subj 1 --concept person --plot
 ```
 
 **Map Voxel Attributions Back to Full Brain Coordinates**
