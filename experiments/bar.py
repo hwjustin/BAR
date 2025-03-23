@@ -63,14 +63,14 @@ def vis_token_process(image_features, vis_token_scale):
     image_features = image_features.reshape(N, -1, C)
     return image_features
 
-def concept_accuracy(random_seed: int, plot: bool, subj: int = 1, save_dir: Path = Path.cwd() / "results/bar/concept_accuracy") -> None:
+def concept_accuracy(random_seed: int, plot: bool, subj: int = 1, model: str = "mindeye", save_dir: Path = Path.cwd() / "results/bar") -> None:
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     
     # Set random seeds for reproducibility
     np.random.seed(random_seed)
     torch.manual_seed(random_seed)
 
-    save_dir = save_dir / f"subj0{subj}"
+    save_dir = save_dir / f"concept_accuracy_{model}" / f"subj0{subj}"
     # Prepare the results directory
     if not save_dir.exists():
         os.makedirs(save_dir)
@@ -89,8 +89,8 @@ def concept_accuracy(random_seed: int, plot: bool, subj: int = 1, save_dir: Path
 
     for category in categories:
         # Load positive and negative embeddings for each category
-        positive_path = Path(f"concept_subj0{subj}/feature_Mindeye/{category}_positive_features.pt")
-        negative_path = Path(f"concept_subj0{subj}/feature_Mindeye/{category}_negative_features.pt")
+        positive_path = Path(f"concept_subj0{subj}/feature_{model}/{category}_positive_features.pt")
+        negative_path = Path(f"concept_subj0{subj}/feature_{model}/{category}_negative_features.pt")
         positive_embeddings = torch.load(positive_path)
         negative_embeddings = torch.load(negative_path)
 
@@ -257,11 +257,13 @@ if __name__ == "__main__":
                        help="Subject number", choices=[1, 2, 5, 7])
     parser.add_argument("--concept", type=str, default="person",
                        help="Concept name")
+    parser.add_argument("--model", type=str, default="mindeye",
+                       help="Model name", choices=["mindeye", "umbrae"])
     args = parser.parse_args()
 
     # Execute the appropriate function based on the experiment name
     if args.name == "concept_accuracy":
-        concept_accuracy(args.random_seed, args.plot, args.subj)
+        concept_accuracy(args.random_seed, args.plot, args.subj, args.model)
     elif args.name == "feature_importance":
         feature_importance(args.random_seed, args.batch_size, args.plot, args.concept, args.subj)
     else:

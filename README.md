@@ -58,7 +58,9 @@ python -m experiments.inference_umbrae --fmri_encoder 'brainx' --subj 1
 ```
 
 ## 3. CAR Classifier Fitting
-
+```shell
+python -m experiments.bar --name concept_accuracy --subj 1 --model mindeye --plot
+```
 
 
 ## 2. Toy example
