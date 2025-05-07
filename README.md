@@ -80,6 +80,7 @@ python -m experiments.mapping --subj 1 --concept person
 
 **Visualise Voxel Attributions** \
 You can use ITK-SNAP to Visualise the Voxel Attribution by importing the `nsdgeneral_subjXX.nii.gz` as main image and overlaying the `mapped_data.nii.gz` file. \
+<br />
 ![image](itk_snap_example.png "ITK-SNAP Example")
 
 ## Acknowledgements
